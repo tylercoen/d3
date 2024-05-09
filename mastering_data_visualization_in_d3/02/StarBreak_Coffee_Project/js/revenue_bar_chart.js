@@ -23,8 +23,9 @@ const svg = d3
   .attr("width", "100%")
   .attr("fill", "red");*/
 
-const g = svg.append("g").style("fill", "grey");
-//  .attr("transform", `translate(${MARGIN.LEFT},${MARGIN.TOP})`)
+const g = svg
+  .append("g")
+  .attr("transform", `translate(${MARGIN.LEFT},${MARGIN.TOP})`);
 // Load the data
 d3.csv("./data/revenues.csv").then((data) => {
   data.forEach((d) => {
@@ -57,14 +58,30 @@ d3.csv("./data/revenues.csv").then((data) => {
     .attr("y", (d) => y(d.revenue))
     .attr("x", (d) => x(d.month))
     .attr("width", x.bandwidth)
-    .attr("height", (d) => HEIGHT - y(d.revenue));
+    .attr("height", (d) => HEIGHT - y(d.revenue))
+    .attr("fill", "grey");
 
   // add axes and labels
   const xAxisScale = d3.axisBottom(x);
 
   g.append("g").call(xAxisScale).attr("transform", `translate(0, ${HEIGHT})`);
 
-  const yAxisScale = d3.axisLeft(y);
+  g.append("text")
+    .attr("x", WIDTH / 2)
+    .attr("y", HEIGHT + 50)
+    .attr("font-size", "20px")
+    .attr("text-anchor", "middle")
+    .text("Month");
+
+  const yAxisScale = d3.axisLeft(y).tickFormat((d) => "$" + d);
 
   g.append("g").call(yAxisScale);
+
+  g.append("text")
+    .attr("x", -(WIDTH / 2.3))
+    .attr("y", -60)
+    .attr("font-size", "20px")
+    .attr("text-anchor", "middle")
+    .attr("transform", "rotate(-90)")
+    .text("Revenue");
 });
