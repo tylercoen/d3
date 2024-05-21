@@ -19,9 +19,9 @@ const g = svg
   .attr("transform", `translate(${MARGIN.LEFT},${MARGIN.TOP})`);
 
 d3.json("data/data.json").then(function (data) {
-  console.log(data[0]);
-  console.log(data[0].countries[0]);
-  console.log(data[0].countries[0].income);
+  //console.log(data[0]);
+  //console.log(data[0].countries[0]);
+  //console.log(data[0].countries[0].income);
 
   //clean data
   const formattedData = data.map((year) => {
@@ -38,7 +38,9 @@ d3.json("data/data.json").then(function (data) {
       });
   });
 
-  const x = d3.scaleLog().domain([100, 150000]).range([0, WIDTH]);
+  const incomeExtent = d3.extent(formattedData.flat(), (d) => d.income);
+
+  const x = d3.scaleLog().domain(incomeExtent).range([0, WIDTH]);
 
   const xAxisScale = d3
     .axisBottom(x)
@@ -58,13 +60,17 @@ d3.json("data/data.json").then(function (data) {
     .domain([0, d3.max(formattedData[0], (d) => d.population)])
     .range([0, 40]);
 
+  const colorScale = d3.scaleOrdinal(d3.schemeCategory10);
+
   g.selectAll("circle")
     .data(formattedData[0])
     .enter()
     .append("circle")
-    .attr("cy", (d) => HEIGHT - d.life_exp - MARGIN.TOP - MARGIN.BOTTOM)
-    .attr("cx", (d) => d.income)
-    .attr("r", (d) => radiusScale(d.population));
+    .attr("cx", (d) => x(d.income))
+    .attr("cy", (d) => y(d.life_exp))
+    .attr("r", (d) => radiusScale(d.population))
+    .attr("fill", (d) => colorScale(d.country))
+    .attr("fill-opacity", 0.6);
 
   console.log(formattedData[0]);
 });
