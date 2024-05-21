@@ -5,7 +5,7 @@
  */
 
 const MARGIN = { LEFT: 100, RIGHT: 10, TOP: 10, BOTTOM: 130 };
-const WIDTH = 1000 - MARGIN.LEFT - MARGIN.LEFT;
+const WIDTH = 1000 - MARGIN.LEFT - MARGIN.RIGHT;
 const HEIGHT = 600 - MARGIN.TOP - MARGIN.BOTTOM;
 
 const svg = d3
@@ -13,14 +13,6 @@ const svg = d3
   .append("svg")
   .attr("width", WIDTH + MARGIN.LEFT + MARGIN.RIGHT)
   .attr("height", HEIGHT + MARGIN.TOP + MARGIN.BOTTOM);
-
-/*	
-svg
-  .append("rect")
-  .attr("height", "100%")
-  .attr("width", "100%")
-  .attr("fill", "red");
-*/
 
 const g = svg
   .append("g")
@@ -41,13 +33,17 @@ d3.json("data/data.json").then(function (data) {
       .map((country) => {
         country.income = Number(country.income);
         country.life_exp = Number(country.life_exp);
+        country.population = Number(country.population);
         return country;
       });
   });
 
   const x = d3.scaleLog().domain([100, 150000]).range([0, WIDTH]);
 
-  const xAxisScale = d3.axisBottom(x).tickValues([400, 4000, 40000]);
+  const xAxisScale = d3
+    .axisBottom(x)
+    .tickValues([400, 4000, 40000])
+    .tickFormat(d3.format(",d"));
 
   g.append("g").call(xAxisScale).attr("transform", `translate(0, ${HEIGHT})`);
 
@@ -57,7 +53,20 @@ d3.json("data/data.json").then(function (data) {
 
   g.append("g").call(yAxisScale);
 
-  console.log(formattedData[0][0]);
+  const radiusScale = d3
+    .scaleSqrt()
+    .domain([0, d3.max(formattedData[0], (d) => d.population)])
+    .range([0, 40]);
+
+  g.selectAll("circle")
+    .data(formattedData[0])
+    .enter()
+    .append("circle")
+    .attr("cy", (d) => HEIGHT - d.life_exp - MARGIN.TOP - MARGIN.BOTTOM)
+    .attr("cx", (d) => d.income)
+    .attr("r", (d) => radiusScale(d.population));
+
+  console.log(formattedData[0]);
 });
 
 /*
