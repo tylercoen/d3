@@ -18,7 +18,7 @@ const g = svg
   .append("g")
   .attr("transform", `translate(${MARGIN.LEFT},${MARGIN.TOP})`);
 
-let index = 0;
+let time = 0;
 let interval;
 let formattedData;
 
@@ -147,8 +147,8 @@ fetchData().then((data) => {
       .range([0, 40]);
 
     function step() {
-      index = index < 214 ? index + 1 : 0;
-      update(formattedData[index]);
+      time = time < 214 ? time + 1 : 0;
+      update(formattedData[time]);
     }
     $("#play-button").on("click", function () {
       const button = $(this);
@@ -162,12 +162,22 @@ fetchData().then((data) => {
     });
 
     $("#reset-button").on("click", () => {
-      index = 0;
+      time = 0;
       update(formattedData);
     });
 
     $("#continent-select").on("change", () => {
-      update(formattedData[index]);
+      update(formattedData[time]);
+    });
+
+    $("#date-slider").slider({
+      min: 1800,
+      max: 2014,
+      step: 1,
+      slide: (event, ui) => {
+        time = ui.value - 1800;
+        update(formattedData[time]);
+      },
     });
 
     function update(data) {
@@ -204,7 +214,11 @@ fetchData().then((data) => {
         .attr("cy", (d) => y(d.life_exp))
         .attr("r", (d) => radiusScale(d.population));
 
-      timeLabel.text(String(index + 1800));
+      timeLabel.text(String(time + 1800));
+      //timeLabel.text(String(time + 1800));
+
+      $("#year")[0].innerHTML = String(time + 1800);
+      $("#date-slider").slider("value", Number(time + 1800));
     }
   }
 });
