@@ -74,18 +74,3 @@ d3.json("data/data.json").then(function (data) {
 
   console.log(formattedData[0]);
 });
-
-/*
-	const formattedData = data.map(year => {
-		return year["countries"].filter(country => {
-			const dataExists = (country.income && country.life_exp)
-			return dataExists
-		}).map(country => {
-			country.income = Number(country.income)
-			country.life_exp = Number(country.life_exp)
-			return country
-		})
-	})
-
-
-*/

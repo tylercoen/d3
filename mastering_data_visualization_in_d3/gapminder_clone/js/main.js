@@ -18,6 +18,10 @@ const g = svg
   .append("g")
   .attr("transform", `translate(${MARGIN.LEFT},${MARGIN.TOP})`);
 
+let time = 0;
+let interval;
+let formattedData;
+
 async function fetchData() {
   try {
     const data = await d3.json("data/data.json");
@@ -28,7 +32,7 @@ async function fetchData() {
 }
 fetchData().then((data) => {
   if (data) {
-    const formattedData = data.map((year) => {
+    formattedData = data.map((year) => {
       return year["countries"]
         .filter((country) => {
           const dataExists = country.income && country.life_exp;
@@ -115,55 +119,83 @@ fetchData().then((data) => {
         .style("text-transform", "capitalize")
         .text(continent);
     });
-    //Need to figure out the tooltip
-    /*
+    //Need to figure out the tooltip, had to add the script with the d3.tip library in the html doc.
+
     const tip = d3
       .tip()
       .attr("class", "d3-tip")
       .html((d) => {
-        let text = `<strong>Country:</strong> <span style='color:red;text-transform:capitalize'>${d.country}</span>`;
-        text += `<strong>Continent:</strong> <span style='color:red;text-transform:capitalize'>${d.continent}</span>`;
+        let text = `<strong>Country:</strong> <span style='color:red;text-transform:capitalize'>${d.country}</span><br>`;
+        text += `<strong>Continent:</strong> <span style='color:red;text-transform:capitalize'>${d.continent}</span><br>`;
         text += `<strong>Life Expectancy:</strong> <span style='color:red'>${d3.format(
           ".2f"
-        )(d.life_exp)}</span>`;
+        )(d.life_exp)}</span><br>`;
         text += `<strong>GDP Per Capita:</strong> <span style='color:red'>${d3.format(
           "$,.0f"
-        )(d.income)}</span>`;
+        )(d.income)}</span><br>`;
         text += `<strong>Population:</strong> <span style='color:red'>${d3.format(
           ",.0f"
         )(d.population)}</span>`;
         return text;
       });
 
-    g.call(tip); */
+    g.call(tip);
 
     const radiusScale = d3
       .scaleSqrt()
       .domain([0, d3.max(formattedData[0], (d) => d.population)])
       .range([0, 40]);
 
-    //const colorScale = d3.scaleOrdinal(d3.schemeCategory10); //
+    function step() {
+      time = time < 214 ? time + 1 : 0;
+      update(formattedData[time]);
+    }
+    $("#play-button").on("click", function () {
+      const button = $(this);
+      if (button.text() === "Play") {
+        button.text("Pause");
+        interval = setInterval(step, 500);
+      } else {
+        button.text("Play");
+        clearInterval(interval);
+      }
+    });
 
-    let index = 0;
+    $("#reset-button").on("click", () => {
+      time = 0;
+      update(formattedData);
+    });
 
-    d3.interval(() => {
-      // Increment the index and wrap around if it exceeds the length of the data
-      index = (index + 1) % formattedData.length;
+    $("#continent-select").on("change", () => {
+      update(formattedData[time]);
+    });
 
-      // Determine the slice of data to use based on the index
-      const newData = formattedData[index];
-
-      // Update with the new data
-      update(newData);
-    }, 1000);
+    $("#date-slider").slider({
+      min: 1800,
+      max: 2014,
+      step: 1,
+      slide: (event, ui) => {
+        time = ui.value - 1800;
+        update(formattedData[time]);
+      },
+    });
 
     function update(data) {
-      const t = d3.transition().duration(750);
-      //console.log(data[0]);
+      const t = d3.transition().duration(500);
+
+      const continent = $("#continent-select").val();
+      const filteredData = data.filter((d) => {
+        if (continent === "all") return true;
+        else {
+          return d.continent == continent;
+        }
+      });
 
       // JOIN
 
-      const circles = g.selectAll("circle");
+      const circles = g
+        .selectAll("circle")
+        .data(filteredData, (d) => d.country);
 
       // EXIT
 
@@ -171,18 +203,22 @@ fetchData().then((data) => {
 
       // ENTER
       circles
-        .data(data)
         .enter()
         .append("circle")
-        .attr("fill-opacity", 0.6)
+        .attr("fill", (d) => continentColor(d.continent))
+        .on("mouseover", tip.show)
+        .on("mouseout", tip.hide)
         .merge(circles)
         .transition(t)
-        .attr("r", (d) => radiusScale(d.population))
-        .attr("fill", (d) => continentColor(d.continent))
         .attr("cx", (d) => x(d.income))
-        .attr("cy", (d) => y(d.life_exp));
+        .attr("cy", (d) => y(d.life_exp))
+        .attr("r", (d) => radiusScale(d.population));
 
-      timeLabel.text(String(year++));
+      timeLabel.text(String(time + 1800));
+      //timeLabel.text(String(time + 1800));
+
+      $("#year")[0].innerHTML = String(time + 1800);
+      $("#date-slider").slider("value", Number(time + 1800));
     }
   }
 });
