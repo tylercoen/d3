@@ -20,43 +20,12 @@ const g = svg
 
 // time parser for x-scale
 const parseTime = d3.timeParse("%Y");
+const parseDate = d3.timeParse("%d/%m/%Y");
+
 // for tooltip
 const bisectDate = d3.bisector((d) => d.year).left;
 
 // scales
-const x = d3.scaleTime().range([0, WIDTH]);
-const y = d3.scaleLinear().range([HEIGHT, 0]);
-
-// axis generators
-const xAxisCall = d3.axisBottom();
-const yAxisCall = d3
-  .axisLeft()
-  .ticks(6)
-  .tickFormat((d) => `${parseInt(d / 1000)}k`);
-
-// axis groups
-const xAxis = g
-  .append("g")
-  .attr("class", "x axis")
-  .attr("transform", `translate(0, ${HEIGHT})`);
-const yAxis = g.append("g").attr("class", "y axis");
-
-// y-axis label
-yAxis
-  .append("text")
-  .attr("class", "axis-title")
-  .attr("transform", "rotate(-90)")
-  .attr("y", 6)
-  .attr("dy", ".71em")
-  .style("text-anchor", "end")
-  .attr("fill", "#5D6971")
-  .text("Population)");
-
-// line path generator
-const line = d3
-  .line()
-  .x((d) => x(d.year))
-  .y((d) => y(d.value));
 
 async function fetchData() {
   try {
@@ -68,39 +37,81 @@ async function fetchData() {
 }
 
 fetchData().then((data) => {
-  let bitcoinData = data["bitcoin"];
+  const bitcoinData = data["bitcoin"];
   const bitcoinCashData = data["bitcoin_cash"];
   const litecoinData = data["litecoin"];
   const rippleData = data["ripple"];
-  function dateFormatter(date) {
-    const [day, month, year] = date.split("/").map(Number);
-    return new Date(year, month - 1, day);
-  }
-  bitcoinData = bitcoinData.flat();
-  console.log(bitcoinData);
 
-  const cleanedBitcoinData = bitcoinData.map((crypto) => {
-    crypto
-      .filter((bitcoin) => {
-        const bitcoinDataExists = bitcoin.market_cap && bitcoin.price_usd;
-        return bitcoinDataExists;
-      })
-      .map((bitcoin) => {
-        bitcoin.price_usd = Number(bitcoin.price_usd);
-        bitcoin.market_cap = Number(bitcoin.market_cap);
-        bitcoin.date = dateFormatter(bitcoin.date);
-      });
+  const cleanedBitcoinData = bitcoinData.filter(
+    (item) => item.market_cap && item.price_usd
+  );
+  cleanedBitcoinData.map((bitcoin) => {
+    bitcoin.price_usd = parseFloat(bitcoin.price_usd);
+    bitcoin.market_cap = parseFloat(bitcoin.market_cap);
+    bitcoin.date = parseDate(bitcoin.date).getFullYear();
   });
 
-  // set scale domains
-  x.domain(d3.extent(data, (d) => d.year));
-  y.domain([
-    d3.min(data, (d) => d.value) / 1.005,
-    d3.max(data, (d) => d.value) * 1.005,
-  ]);
+  //console.log(typeof cleanedBitcoinData[0].date);
+
+  const x = d3.scaleLinear().domain([2013, 2018]).range([0, WIDTH]);
+
+  const xAxisCall = d3
+    .axisBottom(x)
+    .ticks(4)
+    .tickFormat((d, i, nodes) => {
+      // Hide the first and last tick values
+      if (i === 0 || i === nodes.length - 1) {
+        return "";
+      }
+      return d3.format("d")(d);
+    });
+  const xAxis = g
+    .append("g")
+    .attr("class", "x axis")
+    .attr("transform", `translate(0, ${HEIGHT})`);
+
+  xAxis.call(xAxisCall.scale(x));
+
+  const priceExtent = d3.extent(cleanedBitcoinData, (d) => d.price_usd);
+  console.log(priceExtent);
+
+  const y = d3
+    .scaleLinear()
+    .domain([
+      d3.min(cleanedBitcoinData, (d) => d.price_usd) / 1.005,
+      d3.max(cleanedBitcoinData, (d) => d.price_usd) * 1.005,
+    ])
+    .range([HEIGHT, 0]);
+
+  // axis generators
+  const formatNumber = d3.format(",.2f");
+
+  const yAxisCall = d3.axisLeft(y).ticks(12).tickFormat(d3.format("$.2f"));
+
+  // axis groups
+
+  const yAxis = g.append("g").attr("class", "y axis");
+
+  // y-axis label
+  yAxis
+    .append("text")
+    .attr("class", "axis-title")
+    .attr("transform", "rotate(-90)")
+    .attr("y", 6)
+    .attr("dy", ".71em")
+    .style("text-anchor", "end")
+    .attr("fill", "#5D6971")
+    .text("Population)");
+
+  // line path generator
+  /*
+  const line = d3
+    .line()
+    .x(cleanedBitcoinData, (d) => x(d.date))
+    .y(cleanedBitcoinData, (d) => y(d.price_usd));*/
 
   // generate axes once scales have been set
-  xAxis.call(xAxisCall.scale(x));
+
   yAxis.call(yAxisCall.scale(y));
 
   // add line to chart
@@ -108,8 +119,8 @@ fetchData().then((data) => {
     .attr("class", "line")
     .attr("fill", "none")
     .attr("stroke", "grey")
-    .attr("stroke-width", "3px")
-    .attr("d", line(data));
+    .attr("stroke-width", "3px");
+  // .attr("d", line(cleanedBitcoinData));
 
   /******************************** Tooltip Code ********************************/
 
@@ -144,7 +155,7 @@ fetchData().then((data) => {
     const i = bisectDate(data, x0, 1);
     const d0 = data[i - 1];
     const d1 = data[i];
-    const d = x0 - d0.year > d1.year - x0 ? d1 : d0;
+    //const d = x0 - d0.year > d1.year - x0 ? d1 : d0;
     focus.attr("transform", `translate(${x(d.year)}, ${y(d.value)})`);
     focus.select("text").text(d.value);
     focus.select(".x-hover-line").attr("y2", HEIGHT - y(d.value));
