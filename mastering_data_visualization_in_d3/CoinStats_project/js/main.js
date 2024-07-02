@@ -25,39 +25,77 @@ const parseDate = d3.timeParse("%d/%m/%Y");
 // for tooltip
 const bisectDate = d3.bisector((d) => d.date).left;
 
+let selectedData;
+let selectedValue;
+let allData;
+let cleanedData;
+
 // scales
+
+$("#coin-select").on("change", function () {
+  selectedValue = d3.select(this).property("value");
+  //console.log("Selected value: " + selectedValue);
+  updateSelectedData();
+  cleanedData = cleanAndParseData(selectedData);
+  updateChart();
+});
 
 async function fetchData() {
   try {
     const data = await d3.json("data/coins.json");
+    allData = data;
     return data;
   } catch (error) {
     console.log("Error fetching data: ", error);
   }
 }
 
-fetchData().then((data) => {
-  const bitcoinData = data["bitcoin"];
-  const bitcoinCashData = data["bitcoin_cash"];
-  const litecoinData = data["litecoin"];
-  const rippleData = data["ripple"];
+function updateSelectedData() {
+  switch (selectedValue) {
+    case "bitcoin":
+      selectedData = allData["bitcoin"];
+      break;
+    case "ethereum":
+      selectedData = allData["ethereum"];
+      break;
+    case "bitcoin_cash":
+      selectedData = allData["bitcoin_cash"];
+      break;
+    case "litecoin":
+      selectedData = allData["litecoin"];
+      break;
+    case "ripple":
+      selectedData = allData["ripple"];
+      break;
+    default:
+      selectedData = allData["bitcoin"];
+  }
+  //console.log("Selected data: ", selectedData);
+  return selectedData;
+}
 
-  const cleanedBitcoinData = bitcoinData.filter(
-    (item) => item.market_cap && item.price_usd
-  );
-  cleanedBitcoinData.map((bitcoin) => {
-    bitcoin.price_usd = parseFloat(bitcoin.price_usd);
-    bitcoin.market_cap = parseFloat(bitcoin.market_cap);
-    bitcoin.date = parseDate(bitcoin.date);
+function cleanAndParseData(data) {
+  cleanedData = data.filter((item) => item.market_cap && item.price_usd);
+  cleanedData.map((item) => {
+    item.price_usd = parseFloat(item.price_usd);
+    item.market_cap = parseFloat(item.market_cap);
+    item.date = parseDate(item.date);
   });
+  //console.log("Cleaned and parsed data: ", cleanedData);
+  return cleanedData;
+}
 
-  console.log(cleanedBitcoinData[0].date);
+function updateChart() {
+  // Remove previous line and axes
+  g.selectAll(".line").remove();
+  g.selectAll(".x.axis").remove();
+  g.selectAll(".y.axis").remove();
 
   // X axis
 
   const x = d3
     .scaleTime()
-    .domain(d3.extent(cleanedBitcoinData, (d) => d.date))
+    .domain(d3.extent(cleanedData, (d) => d.date))
     .range([0, WIDTH]);
 
   const xAxisCall = d3.axisBottom(x).ticks(4).tickFormat(d3.timeFormat("%Y"));
@@ -74,12 +112,11 @@ fetchData().then((data) => {
   const y = d3
     .scaleLinear()
     .domain([
-      d3.min(cleanedBitcoinData, (d) => d.price_usd) / 1.005,
-      d3.max(cleanedBitcoinData, (d) => d.price_usd) * 1.005,
+      d3.min(cleanedData, (d) => d.price_usd) / 1.005,
+      d3.max(cleanedData, (d) => d.price_usd) * 1.005,
     ])
     .range([HEIGHT, 0]);
-  console.log(d3.min(cleanedBitcoinData, (d) => d.price_usd));
-  console.log(d3.max(cleanedBitcoinData, (d) => d.price_usd));
+
   // axis generators
 
   const yAxisCall = d3.axisLeft(y).ticks(12).tickFormat(d3.format("$,.0f"));
@@ -111,7 +148,7 @@ fetchData().then((data) => {
 
   // add line to chart
   g.append("path")
-    .datum(cleanedBitcoinData)
+    .datum(cleanedData)
     .attr("class", "line")
     .attr("fill", "none")
     .attr("stroke", "grey")
@@ -148,9 +185,9 @@ fetchData().then((data) => {
 
   function mousemove() {
     const x0 = x.invert(d3.mouse(this)[0]);
-    const i = bisectDate(cleanedBitcoinData, x0, 1);
-    const d0 = cleanedBitcoinData[i - 1];
-    const d1 = cleanedBitcoinData[i];
+    const i = bisectDate(cleanedData, x0, 1);
+    const d0 = cleanedData[i - 1];
+    const d1 = cleanedData[i];
     const d = x0 - d0.date > d1.date - x0 ? d1 : d0;
     focus.attr("transform", `translate(${x(d.date)}, ${y(d.price_usd)})`);
     focus.select("text").text(d.price_usd);
@@ -159,4 +196,10 @@ fetchData().then((data) => {
   }
 
   /******************************** Tooltip Code ********************************/
+}
+
+fetchData().then((data) => {
+  updateSelectedData();
+  cleanedData = cleanAndParseData(selectedData);
+  updateChart();
 });
