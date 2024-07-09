@@ -26,18 +26,32 @@ const parseDate = d3.timeParse("%d/%m/%Y");
 const bisectDate = d3.bisector((d) => d.date).left;
 
 let selectedData;
-let selectedValue;
+let selectedCrypto = "bitcoin";
 let allData;
 let cleanedData;
+let selectedMeasurement = "price_usd";
 
 // scales
 
 $("#coin-select").on("change", function () {
-  selectedValue = d3.select(this).property("value");
-  //console.log("Selected value: " + selectedValue);
+  selectedCrypto = d3.select(this).property("value");
+  //console.log("Selected value: " + selectedCrypto);
   updateSelectedData();
   cleanedData = cleanAndParseData(selectedData);
   updateChart();
+});
+
+$("#var-select").on("change", function () {
+  selectedMeasurement = d3.select(this).property("value");
+  console.log(selectedMeasurement);
+  updateSelectedData();
+  cleanedData = cleanAndParseData(selectedData);
+  updateYValue();
+  updateChart();
+
+  //Need to figure out the y-axis changes
+
+  //Need to fix the line creation
 });
 
 async function fetchData() {
@@ -51,7 +65,7 @@ async function fetchData() {
 }
 
 function updateSelectedData() {
-  switch (selectedValue) {
+  switch (selectedCrypto) {
     case "bitcoin":
       selectedData = allData["bitcoin"];
       break;
@@ -74,11 +88,30 @@ function updateSelectedData() {
   return selectedData;
 }
 
+function updateYValue() {
+  // not recognizing price_usd etc...
+  switch (selectedMeasurement) {
+    case "price_usd":
+      selectedMeasurement = "price_usd";
+      break;
+    case "market_cap":
+      selectedMeasurement = "market_cap";
+      break;
+    case "24h_vol":
+      selectedMeasurement = "24h_vol";
+      break;
+    default:
+      selectedMeasurement = "price_usd";
+  }
+  return selectedMeasurement;
+}
+
 function cleanAndParseData(data) {
   cleanedData = data.filter((item) => item.market_cap && item.price_usd);
   cleanedData.map((item) => {
     item.price_usd = parseFloat(item.price_usd);
     item.market_cap = parseFloat(item.market_cap);
+    item["24h_vol"] = parseFloat(item["24h_vol"]);
     item.date = parseDate(item.date);
   });
   //console.log("Cleaned and parsed data: ", cleanedData);
@@ -112,8 +145,10 @@ function updateChart() {
   const y = d3
     .scaleLinear()
     .domain([
-      d3.min(cleanedData, (d) => d.price_usd) / 1.005,
-      d3.max(cleanedData, (d) => d.price_usd) * 1.005,
+      //d3.min(cleanedData, (d) => d.price_usd) / 1.005,
+      d3.min(cleanedData, (d) => d[selectedMeasurement]) / 1.005,
+      //d3.max(cleanedData, (d) => d.price_usd) * 1.005,
+      d3.max(cleanedData, (d) => d[selectedMeasurement]) * 1.005,
     ])
     .range([HEIGHT, 0]);
 
@@ -134,7 +169,7 @@ function updateChart() {
     .attr("dy", ".71em")
     .style("text-anchor", "end")
     .attr("fill", "#5D6971")
-    .text("Price USD");
+    .text(selectedMeasurement.replace("-", " ").toUpperCase());
 
   yAxis.call(yAxisCall.scale(y));
   // line path generator
@@ -142,7 +177,7 @@ function updateChart() {
   const line = d3
     .line()
     .x((d) => x(d.date))
-    .y((d) => y(d.price_usd));
+    .y((d) => y(d[selectedMeasurement]));
 
   // generate axes once scales have been set
 
@@ -189,9 +224,14 @@ function updateChart() {
     const d0 = cleanedData[i - 1];
     const d1 = cleanedData[i];
     const d = x0 - d0.date > d1.date - x0 ? d1 : d0;
-    focus.attr("transform", `translate(${x(d.date)}, ${y(d.price_usd)})`);
-    focus.select("text").text(d.price_usd);
-    focus.select(".x-hover-line").attr("y2", HEIGHT - y(d.price_usd));
+    focus.attr(
+      "transform",
+      `translate(${x(d.date)}, ${y(d[selectedMeasurement])})`
+    );
+    focus.select("text").text(d[selectedMeasurement]);
+    focus
+      .select(".x-hover-line")
+      .attr("y2", HEIGHT - y(d[selectedMeasurement]));
     focus.select(".y-hover-line").attr("x2", -x(d.date));
   }
 
