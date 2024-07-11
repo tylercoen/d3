@@ -4,7 +4,7 @@
  *    Project 3 - CoinStats
  */
 
-const MARGIN = { LEFT: 60, RIGHT: 100, TOP: 50, BOTTOM: 100 };
+const MARGIN = { LEFT: 100, RIGHT: 100, TOP: 50, BOTTOM: 100 };
 const WIDTH = 800 - MARGIN.LEFT - MARGIN.RIGHT;
 const HEIGHT = 500 - MARGIN.TOP - MARGIN.BOTTOM;
 
@@ -30,12 +30,38 @@ let selectedCrypto = "bitcoin";
 let allData;
 let cleanedData;
 let selectedMeasurement = "price_usd";
+let dateRange;
 
 // scales
+$("#date-slider").slider({
+  range: true,
+  min: parseDate("12/05/2013").getTime(),
+  max: parseDate("31/10/2017").getTime(),
+  step: 86400000, // One day
+  values: [
+    parseDate("12/05/2013").getTime(),
+    parseDate("31/10/2017").getTime(),
+  ],
+  slide: function (event, ui) {
+    $("#dateLabel1").text(formatDate(new Date(ui.values[0])));
+    $("#dateLabel2").text(formatDate(new Date(ui.values[1])));
+    dateRange = [new Date(ui.values[0]), new Date(ui.values[1])];
+    updateSelectedData();
+    cleanedData = cleanAndParseData(selectedData);
+    updateChart();
+  },
+});
+
+function formatDate(date) {
+  const day = String(date.getDate()).padStart(2, "0");
+  const month = String(date.getMonth() + 1).padStart(2, "0"); // Months are zero-based
+  const year = date.getFullYear();
+  return `${day}/${month}/${year}`;
+}
 
 $("#coin-select").on("change", function () {
   selectedCrypto = d3.select(this).property("value");
-  //console.log("Selected value: " + selectedCrypto);
+  console.log("Selected value: " + selectedCrypto);
   updateSelectedData();
   cleanedData = cleanAndParseData(selectedData);
   updateChart();
@@ -44,50 +70,34 @@ $("#coin-select").on("change", function () {
 $("#var-select").on("change", function () {
   selectedMeasurement = d3.select(this).property("value");
   console.log(selectedMeasurement);
-  updateSelectedData();
   cleanedData = cleanAndParseData(selectedData);
   updateYValue();
   updateChart();
-
-  //Need to figure out the y-axis changes
-
-  //Need to fix the line creation
 });
 
 async function fetchData() {
   try {
     const data = await d3.json("data/coins.json");
     allData = data;
-    return data;
+    updateSelectedData();
+    cleanedData = cleanAndParseData(selectedData);
+    updateChart();
   } catch (error) {
     console.log("Error fetching data: ", error);
   }
 }
 
 function updateSelectedData() {
-  switch (selectedCrypto) {
-    case "bitcoin":
-      selectedData = allData["bitcoin"];
-      break;
-    case "ethereum":
-      selectedData = allData["ethereum"];
-      break;
-    case "bitcoin_cash":
-      selectedData = allData["bitcoin_cash"];
-      break;
-    case "litecoin":
-      selectedData = allData["litecoin"];
-      break;
-    case "ripple":
-      selectedData = allData["ripple"];
-      break;
-    default:
-      selectedData = allData["bitcoin"];
+  if (allData) {
+    selectedData = allData[selectedCrypto];
+    if (dateRange) {
+      selectedData = selectedData.filter((d) => {
+        const date = parseDate(d.date);
+        return date >= dateRange[0] && date <= dateRange[1];
+      });
+    }
   }
-  //console.log("Selected data: ", selectedData);
-  return selectedData;
 }
-
 function updateYValue() {
   // not recognizing price_usd etc...
   switch (selectedMeasurement) {
@@ -107,14 +117,18 @@ function updateYValue() {
 }
 
 function cleanAndParseData(data) {
-  cleanedData = data.filter((item) => item.market_cap && item.price_usd);
-  cleanedData.map((item) => {
-    item.price_usd = parseFloat(item.price_usd);
-    item.market_cap = parseFloat(item.market_cap);
-    item["24h_vol"] = parseFloat(item["24h_vol"]);
-    item.date = parseDate(item.date);
-  });
-  //console.log("Cleaned and parsed data: ", cleanedData);
+  if (data) {
+    cleanedData = data
+      .filter((item) => item.market_cap && item.price_usd)
+      .map((item) => ({
+        ...item,
+        price_usd: parseFloat(item.price_usd),
+        market_cap: parseFloat(item.market_cap),
+        "24h_vol": parseFloat(item["24h_vol"]),
+        date: parseDate(item.date),
+      }));
+    //console.log("Cleaned and parsed data: ", cleanedData);
+  }
   return cleanedData;
 }
 
@@ -145,16 +159,26 @@ function updateChart() {
   const y = d3
     .scaleLinear()
     .domain([
-      //d3.min(cleanedData, (d) => d.price_usd) / 1.005,
       d3.min(cleanedData, (d) => d[selectedMeasurement]) / 1.005,
-      //d3.max(cleanedData, (d) => d.price_usd) * 1.005,
       d3.max(cleanedData, (d) => d[selectedMeasurement]) * 1.005,
     ])
     .range([HEIGHT, 0]);
 
   // axis generators
+  const formatSi = d3.format(".2s");
+  function formatAbbreviations(x) {
+    const s = formatSi(x);
+    switch (s[s.length - 1]) {
+      case "G":
+        return s.slice(0, -1) + "B";
+      case "k":
+        return s.slice(0, -1) + "k";
+    }
+    return s;
+  }
 
-  const yAxisCall = d3.axisLeft(y).ticks(12).tickFormat(d3.format("$,.0f"));
+  //const yAxisCall = d3.axisLeft(y).ticks(12).tickFormat(d3.format("$,.0f"));
+  const yAxisCall = d3.axisLeft(y).ticks(12).tickFormat(formatAbbreviations);
 
   // axis groups
 
@@ -238,8 +262,4 @@ function updateChart() {
   /******************************** Tooltip Code ********************************/
 }
 
-fetchData().then((data) => {
-  updateSelectedData();
-  cleanedData = cleanAndParseData(selectedData);
-  updateChart();
-});
+fetchData();
