@@ -34,7 +34,21 @@ var svg = d3.select("svg"),
   width = +svg.attr("width"),
   height = +svg.attr("height");
 
-//var promises = [d3.json("data/eduData.json"), d3.json("data/counties.json")];
+//var educationMap = d3.map(); this isn't working check what's going on with map
+
+var path = d3.geoPath();
+
+var x = d3.scaleLinear().domain([1, 10]).rangeRound([600, 860]);
+var color = d3
+  .scaleThreshold()
+  .domain(d3.range(2, 10))
+  .range(d3.schemeBlues[9]);
+
+var g = svg
+  .append("g")
+  .attr("class", "key")
+  .attr("transform", "translate(0,40)");
+
 var promises = [
   d3.json(
     "https://cdn.freecodecamp.org/testable-projects-fcc/data/choropleth_map/for_user_education.json"
@@ -43,7 +57,6 @@ var promises = [
     "https://cdn.freecodecamp.org/testable-projects-fcc/data/choropleth_map/counties.json"
   ),
 ];
-
 Promise.all(promises)
   .then(function (allData) {
     var eduData = allData[0];
@@ -55,3 +68,5 @@ Promise.all(promises)
   .catch(function (error) {
     console.error("error fecthing data: ", error);
   });
+
+//current choropleth map https://observablehq.com/@d3/choropleth/2?intent=fork
