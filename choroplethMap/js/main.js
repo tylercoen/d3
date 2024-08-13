@@ -34,15 +34,22 @@ var svg = d3.select("svg"),
   width = +svg.attr("width"),
   height = +svg.attr("height");
 
-//var educationMap = d3.map(); this isn't working check what's going on with map
+var createChart = (data) => {
+  const color = d3.scaleQuantize([1, 10], d3.schemeBlues[9]);
+  const path = d3.geoPath();
+  const format = (d) => `${d}%`;
+  var educationMap = new Map(data.map((d) => [d.fips, d.bacheloresOrHigher]));
+  console.log("createChart ran");
+};
 
-var path = d3.geoPath();
+var mapCounties = (data, map) => {
+  const counties = topojson.feature(data, data.counties.geometries);
+  const states = topojson.feature(data, data.states.geometries);
+  const statemap = new Map(states.features.map((data) => [data.id, d]));
+  console.log("mapCounties ran");
+};
 
 var x = d3.scaleLinear().domain([1, 10]).rangeRound([600, 860]);
-var color = d3
-  .scaleThreshold()
-  .domain(d3.range(2, 10))
-  .range(d3.schemeBlues[9]);
 
 var g = svg
   .append("g")
@@ -64,6 +71,8 @@ Promise.all(promises)
     console.log("promises returned");
     console.log(eduData[0]);
     console.log(counties);
+    createChart(eduData);
+    mapCounties(counties);
   })
   .catch(function (error) {
     console.error("error fecthing data: ", error);
