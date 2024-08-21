@@ -29,109 +29,107 @@ US County Data:https://cdn.freecodecamp.org/testable-projects-fcc/data/choroplet
 eduData[0] = {fips: 1001, state: 'AL', area_name: 'Autauga County', bachelorsOrHigher: 21.9}
 
 */
+const svg = d3.select("svg");
+const width = +svg.attr("width");
+const height = +svg.attr("height");
 
-var svg = d3.select("svg"),
-  width = +svg.attr("width"),
-  height = +svg.attr("height");
+const educationMap = new Map();
 
-const projection = d3
-  .geoAlbersUsa()
-  .scale(1000)
-  .translate([width / 2, height / 2]);
+const path = d3.geoPath();
 
-const path = d3.geoPath().projection(projection);
-
-var createChart = (data) => {
-  const color = d3.scaleQuantize([1, 10], d3.schemeBlues[9]);
-  const path = d3.geoPath();
-  const format = (d) => `${d}%`;
-  var educationMap = new Map(data.map((d) => [d.fips, d.bacheloresOrHigher]));
-  console.log("createChart ran");
-  console.log(educationMap);
-};
-
-var mapCounties = (data, map) => {
-  const counties = topojson.feature(data, data.counties.geometries);
-  const states = topojson.feature(data, data.states.geometries);
-  console.log(states);
-
-  //const statemap = new Map(states.Feature.map((data) => [data.id, d]));
-  console.log("mapCounties ran");
-};
-
-var x = d3.scaleLinear().domain([1, 10]).rangeRound([600, 860]);
-var color = d3
-  .scaleThreshold()
-  .domain(d3.range(2, 10))
-  .range(d3.schemeBlues[9]);
-var g = svg
+const g = svg
   .append("g")
   .attr("class", "key")
   .attr("transform", "translate(0,40)");
 
-g.selectAll("rect")
-  .data(
-    color.range().map(function (d) {
-      d = color.invertExtent(d);
-      if (d[0] == null) d[0] = x.domain()[0];
-      if (d[1] == null) d[1] = x.domain()[1];
-      return d;
-    })
-  )
-  .enter()
-  .append("rect")
-  .attr("height", 8)
-  .attr("x", function (d) {
-    return x(d[0]);
-  })
-  .attr("width", function (d) {
-    return x(d[1] - x(d[0]));
-  })
-  .attr("fill", function (d) {
-    return color(d[0]);
-  });
-
-g.append("text")
-  .attr("class", "caption")
-  .attr("x", x.range()[0])
-  .attr("y", -6)
-  .attr("fill", "#000")
-  .attr("text-anchor", "start")
-  .attr("font-weight", "bold")
-  .text("Education Rate");
-
-g.call(
-  d3
-    .axisBottom(x)
-    .tickSize(13)
-    .tickFormat(function (x, i) {
-      return i ? x : x + "%";
-    })
-    .tickValues(color.domain())
-)
-  .select(".domain")
-  .remove();
-
-var promises = [
+Promise.all([
   d3.json(
     "https://cdn.freecodecamp.org/testable-projects-fcc/data/choropleth_map/for_user_education.json"
   ),
   d3.json(
     "https://cdn.freecodecamp.org/testable-projects-fcc/data/choropleth_map/counties.json"
   ),
-];
-Promise.all(promises)
-  .then(function (allData) {
-    var eduData = allData[0];
-    var counties = allData[1]["objects"];
-    console.log("promises returned");
-    console.log(eduData[0]);
-    console.log(counties);
-    //createChart(eduData);
-    //mapCounties(counties);
+])
+  .then(([educationData, us]) => {
+    educationData.forEach((d) => {
+      educationMap.set(d.fips, +d.bachelorsOrHigher);
+    });
+    ready(us);
   })
-  .catch(function (error) {
-    console.error("error fecthing data: ", error);
+  .catch((error) => {
+    console.error("Error fetching data: ", error);
+  });
+// After loading the data and populating educationMap
+const educationValues = Array.from(educationMap.values());
+const minEducation = d3.min(educationValues);
+const maxEducation = d3.max(educationValues);
+
+// Update x scale to use the actual data range
+const x = d3
+  .scaleLinear()
+  .domain([minEducation, maxEducation])
+  .rangeRound([600, 860]);
+
+// Create a more granular color scale
+const color = d3
+  .scaleQuantize()
+  .domain([minEducation, maxEducation])
+  .range(d3.schemeBlues[9]);
+
+// Update the legend
+g.selectAll("rect")
+  .data(color.range().map((d) => color.invertExtent(d)))
+  .join("rect")
+  .attr("height", 8)
+  .attr("x", (d) => x(d[0]))
+  .attr("width", (d) => x(d[1]) - x(d[0]))
+  .attr("fill", (d) => color(d[0]));
+
+// Update the axis
+g.call(
+  d3
+    .axisBottom(x)
+    .tickSize(13)
+    .tickFormat((d) => `${d.toFixed(1)}%`)
+    .ticks(9)
+)
+  .select(".domain")
+  .remove();
+
+// In the ready function, update the fill attribute
+svg
+  .append("g")
+  .attr("class", "counties")
+  .selectAll("path")
+  .data(topojson.feature(us, us.objects.counties).features)
+  .join("path")
+  .attr("fill", (d) => {
+    const value = educationMap.get(d.id);
+    return value ? color(value) : "#ccc"; // Use a light grey for missing data
+  })
+  .attr("d", path)
+  .append("title")
+  .text((d) => {
+    const value = educationMap.get(d.id);
+    return value ? `${value.toFixed(1)}%` : "No data";
   });
 
+function ready(us) {
+  svg
+    .append("g")
+    .attr("class", "counties")
+    .selectAll("path")
+    .data(topojson.feature(us, us.objects.counties).features)
+    .join("path")
+    .attr("fill", (d) => color(educationMap.get(d.id)))
+    .attr("d", path)
+    .append("title")
+    .text((d) => `${educationMap.get(d.id)}%`);
+
+  svg
+    .append("path")
+    .datum(topojson.mesh(us, us.objects.states, (a, b) => a !== b))
+    .attr("class", "states")
+    .attr("d", path);
+}
 //current choropleth map https://observablehq.com/@d3/choropleth/2?intent=fork
