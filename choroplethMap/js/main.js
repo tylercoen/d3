@@ -42,6 +42,61 @@ const g = svg
   .attr("class", "key")
   .attr("transform", "translate(0,40)");
 
+let us;
+let color;
+
+const updateChoropleth = (educationValues, us) => {
+  const minEducation = d3.min(educationValues);
+  const maxEducation = d3.max(educationValues);
+
+  const color = d3
+    .scaleQuantize()
+    .domain([minEducation, maxEducation])
+    .range(d3.schemeBlues[9]);
+
+  const x = d3
+    .scaleLinear()
+    .domain([minEducation, maxEducation])
+    .rangeRound([600, 860]);
+
+  // Update the legend
+  g.selectAll("rect")
+    .data(color.range().map((d) => color.invertExtent(d)))
+    .join("rect")
+    .attr("height", 8)
+    .attr("x", (d) => x(d[0]))
+    .attr("width", (d) => x(d[1]) - x(d[0]))
+    .attr("fill", (d) => color(d[0]));
+
+  // Update the axis
+  g.call(
+    d3
+      .axisBottom(x)
+      .tickSize(13)
+      .tickFormat((d) => `${d.toFixed(1)}%`)
+      .ticks(9)
+  )
+    .select(".domain")
+    .remove();
+
+  svg
+    .append("g")
+    .attr("class", "counties")
+    .selectAll("path")
+    .data(topojson.feature(us, us.objects.counties).features)
+    .join("path")
+    .attr("fill", (d) => {
+      const value = educationMap.get(d.id);
+      return value ? color(value) : "#ccc"; // Use a light grey for missing data
+    })
+    .attr("d", path)
+    .append("title")
+    .text((d) => {
+      const value = educationMap.get(d.id);
+      return value ? `${value.toFixed(1)}%` : "No data";
+    });
+};
+
 Promise.all([
   d3.json(
     "https://cdn.freecodecamp.org/testable-projects-fcc/data/choropleth_map/for_user_education.json"
@@ -54,65 +109,19 @@ Promise.all([
     educationData.forEach((d) => {
       educationMap.set(d.fips, +d.bachelorsOrHigher);
     });
+    const educationValues = Array.from(educationMap.values());
+    updateChoropleth(educationValues, us);
+
     ready(us);
   })
   .catch((error) => {
     console.error("Error fetching data: ", error);
   });
 // After loading the data and populating educationMap
-const educationValues = Array.from(educationMap.values());
-const minEducation = d3.min(educationValues);
-const maxEducation = d3.max(educationValues);
 
 // Update x scale to use the actual data range
-const x = d3
-  .scaleLinear()
-  .domain([minEducation, maxEducation])
-  .rangeRound([600, 860]);
-
-// Create a more granular color scale
-const color = d3
-  .scaleQuantize()
-  .domain([minEducation, maxEducation])
-  .range(d3.schemeBlues[9]);
-
-// Update the legend
-g.selectAll("rect")
-  .data(color.range().map((d) => color.invertExtent(d)))
-  .join("rect")
-  .attr("height", 8)
-  .attr("x", (d) => x(d[0]))
-  .attr("width", (d) => x(d[1]) - x(d[0]))
-  .attr("fill", (d) => color(d[0]));
-
-// Update the axis
-g.call(
-  d3
-    .axisBottom(x)
-    .tickSize(13)
-    .tickFormat((d) => `${d.toFixed(1)}%`)
-    .ticks(9)
-)
-  .select(".domain")
-  .remove();
 
 // In the ready function, update the fill attribute
-svg
-  .append("g")
-  .attr("class", "counties")
-  .selectAll("path")
-  .data(topojson.feature(us, us.objects.counties).features)
-  .join("path")
-  .attr("fill", (d) => {
-    const value = educationMap.get(d.id);
-    return value ? color(value) : "#ccc"; // Use a light grey for missing data
-  })
-  .attr("d", path)
-  .append("title")
-  .text((d) => {
-    const value = educationMap.get(d.id);
-    return value ? `${value.toFixed(1)}%` : "No data";
-  });
 
 function ready(us) {
   svg
