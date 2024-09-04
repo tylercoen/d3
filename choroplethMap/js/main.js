@@ -45,7 +45,7 @@ const g = svg
 let us;
 let color;
 
-const updateChoropleth = (educationValues, us) => {
+function updateChoropleth(educationValues, us) {
   const minEducation = d3.min(educationValues);
   const maxEducation = d3.max(educationValues);
 
@@ -81,7 +81,7 @@ const updateChoropleth = (educationValues, us) => {
 
   svg
     .append("g")
-    .attr("class", "counties")
+    .attr("class", "county")
     .selectAll("path")
     .data(topojson.feature(us, us.objects.counties).features)
     .join("path")
@@ -95,7 +95,7 @@ const updateChoropleth = (educationValues, us) => {
       const value = educationMap.get(d.id);
       return value ? `${value.toFixed(1)}%` : "No data";
     });
-};
+}
 
 Promise.all([
   d3.json(
@@ -108,6 +108,8 @@ Promise.all([
   .then(([educationData, us]) => {
     educationData.forEach((d) => {
       educationMap.set(d.fips, +d.bachelorsOrHigher);
+      //d.fips = d.fips;
+      //d.education = +d.bachelorsOrHigher;
     });
     const educationValues = Array.from(educationMap.values());
     updateChoropleth(educationValues, us);
@@ -117,16 +119,11 @@ Promise.all([
   .catch((error) => {
     console.error("Error fetching data: ", error);
   });
-// After loading the data and populating educationMap
-
-// Update x scale to use the actual data range
-
-// In the ready function, update the fill attribute
 
 function ready(us) {
   svg
     .append("g")
-    .attr("class", "counties")
+    .attr("class", "county")
     .selectAll("path")
     .data(topojson.feature(us, us.objects.counties).features)
     .join("path")
