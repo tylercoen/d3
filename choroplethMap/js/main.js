@@ -40,6 +40,7 @@ const path = d3.geoPath();
 const g = svg
   .append("g")
   .attr("class", "key")
+  .attr("id", "legend")
   .attr("transform", "translate(0,40)");
 
 let us;
@@ -121,6 +122,17 @@ Promise.all([
   });
 
 function ready(us) {
+  // Create a tooltip element
+  const tooltip = d3
+    .select("body")
+    .append("div")
+    .attr("id", "tooltip")
+    .style("position", "absolute")
+    .style("opacity", 0)
+    .style("background-color", "white")
+    .style("border", "1px solid #ccc")
+    .style("padding", "4px");
+
   svg
     .append("g")
     .attr("class", "county")
@@ -128,9 +140,9 @@ function ready(us) {
     .data(topojson.feature(us, us.objects.counties).features)
     .join("path")
     .attr("fill", (d) => color(educationMap.get(d.id)))
-    .attr("d", path)
-    .append("title")
-    .text((d) => `${educationMap.get(d.id)}%`);
+    .attr("d", path);
+  //.append("title")
+  //.text((d) => `${educationMap.get(d.id)}%`);
 
   svg
     .append("path")
@@ -138,4 +150,36 @@ function ready(us) {
     .attr("class", "states")
     .attr("d", path);
 }
+
+//Update the title element of each county path
+
+svg
+  .select(".county")
+  .selectAll("path")
+  .each(function (d) {
+    d3.select(this)
+      .append("title")
+      .attr("id", "tooltip")
+      .attr("data-education", educationMap.get(d.id))
+      .attr("data-fips", d.id)
+      .text((d) => `${educationMap.get(d.id)}%`);
+  });
+
+svg
+  .selectAll("path")
+  .on("mouseover", function (event, d) {
+    tooltip.transition().duration(200).style("opacity", 0.9);
+
+    tooltip
+      .html(
+        `
+      <p><strong>Education Level:</strong> ${d.data.education}%</p>
+      <p><strong>FIPS Code:</strong> ${d.data.fips}</p>`
+      )
+      .style("left", event.pageX + 10 + "px")
+      .style("top", event.pageY + 10 + "px");
+  })
+  .on("mouseout", function () {
+    tooltip.transition().duration(500).style("opacity", 0);
+  });
 //current choropleth map https://observablehq.com/@d3/choropleth/2?intent=fork
