@@ -91,19 +91,13 @@ Promise.all([
 ])
   .then(([educationData, us]) => {
     educationData.forEach((d) => {
-      console.log(
-        "FIPS type:",
-        typeof d.fips,
-        "Education type:",
-        typeof d.bachelorsOrHigher
-      );
-
       educationMap.set(d.fips, +d.bachelorsOrHigher);
       d.fips = d.fips;
       d.education = +d.bachelorsOrHigher;
     });
     const educationValues = Array.from(educationMap.values());
     updateChoropleth(educationValues);
+    console.log(us.objects.counties);
 
     ready(us);
   })
@@ -118,6 +112,8 @@ function ready(us) {
     .selectAll("path")
     .data(topojson.feature(us, us.objects.counties).features)
     .join("path")
+    .attr("data-fips", (d) => d.fips) // Set data-fips attribute to the county ID
+    .attr("data-education", (d) => educationMap.get(d.id)) // Set data-education attribute to the education value
     .attr("fill", (d) => {
       const value = educationMap.get(d.id);
       return value ? color(value) : "#ccc";
@@ -132,7 +128,7 @@ function ready(us) {
       topojson.mesh(
         us,
         us.objects.states,
-        (a, b) => a.properties.name !== b.properties.name
+        (a, b) => a.properties.id !== b.properties.id
       )
     )
     .attr("class", "states")
@@ -140,7 +136,7 @@ function ready(us) {
 }
 
 //Update the title element of each county path
-
+/*
 svg
   .select(".county")
   .selectAll("path")
@@ -153,7 +149,7 @@ svg
       .text((d) => `${educationMap.get(d.id)}%`);
   });
 // Create a tooltip element
-/*
+
 const tooltip = d3
   .select("body")
   .append("div")
