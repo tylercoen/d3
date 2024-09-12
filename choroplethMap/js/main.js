@@ -46,11 +46,11 @@ const g = svg
 let us;
 let color;
 
-function updateChoropleth(educationValues, us) {
+function updateChoropleth(educationValues) {
   const minEducation = d3.min(educationValues);
   const maxEducation = d3.max(educationValues);
 
-  const color = d3
+  color = d3
     .scaleQuantize()
     .domain([minEducation, maxEducation])
     .range(d3.schemeBlues[9]);
@@ -79,23 +79,6 @@ function updateChoropleth(educationValues, us) {
   )
     .select(".domain")
     .remove();
-
-  svg
-    .append("g")
-    .attr("class", "county")
-    .selectAll("path")
-    .data(topojson.feature(us, us.objects.counties).features)
-    .join("path")
-    .attr("fill", (d) => {
-      const value = educationMap.get(d.id);
-      return value ? color(value) : "#ccc"; // Use a light grey for missing data
-    })
-    .attr("d", path)
-    .append("title")
-    .text((d) => {
-      const value = educationMap.get(d.id);
-      return value ? `${value.toFixed(1)}%` : "No data";
-    });
 }
 
 Promise.all([
@@ -108,12 +91,19 @@ Promise.all([
 ])
   .then(([educationData, us]) => {
     educationData.forEach((d) => {
+      console.log(
+        "FIPS type:",
+        typeof d.fips,
+        "Education type:",
+        typeof d.bachelorsOrHigher
+      );
+
       educationMap.set(d.fips, +d.bachelorsOrHigher);
-      //d.fips = d.fips;
-      //d.education = +d.bachelorsOrHigher;
+      d.fips = d.fips;
+      d.education = +d.bachelorsOrHigher;
     });
     const educationValues = Array.from(educationMap.values());
-    updateChoropleth(educationValues, us);
+    updateChoropleth(educationValues);
 
     ready(us);
   })
@@ -122,31 +112,29 @@ Promise.all([
   });
 
 function ready(us) {
-  // Create a tooltip element
-  const tooltip = d3
-    .select("body")
-    .append("div")
-    .attr("id", "tooltip")
-    .style("position", "absolute")
-    .style("opacity", 0)
-    .style("background-color", "white")
-    .style("border", "1px solid #ccc")
-    .style("padding", "4px");
-
   svg
     .append("g")
     .attr("class", "county")
     .selectAll("path")
     .data(topojson.feature(us, us.objects.counties).features)
     .join("path")
-    .attr("fill", (d) => color(educationMap.get(d.id)))
-    .attr("d", path);
-  //.append("title")
-  //.text((d) => `${educationMap.get(d.id)}%`);
+    .attr("fill", (d) => {
+      const value = educationMap.get(d.id);
+      return value ? color(value) : "#ccc";
+    })
+    .attr("d", path)
+    .append("title")
+    .text((d) => `${educationMap.get(d.id)}%`);
 
   svg
     .append("path")
-    .datum(topojson.mesh(us, us.objects.states, (a, b) => a !== b))
+    .datum(
+      topojson.mesh(
+        us,
+        us.objects.states,
+        (a, b) => a.properties.name !== b.properties.name
+      )
+    )
     .attr("class", "states")
     .attr("d", path);
 }
@@ -164,7 +152,17 @@ svg
       .attr("data-fips", d.id)
       .text((d) => `${educationMap.get(d.id)}%`);
   });
-
+// Create a tooltip element
+/*
+const tooltip = d3
+  .select("body")
+  .append("div")
+  .attr("id", "tooltip")
+  .style("position", "absolute")
+  .style("opacity", 0)
+  .style("background-color", "white")
+  .style("border", "1px solid #ccc")
+  .style("padding", "4px");
 svg
   .selectAll("path")
   .on("mouseover", function (event, d) {
@@ -181,5 +179,5 @@ svg
   })
   .on("mouseout", function () {
     tooltip.transition().duration(500).style("opacity", 0);
-  });
+  });*/
 //current choropleth map https://observablehq.com/@d3/choropleth/2?intent=fork
