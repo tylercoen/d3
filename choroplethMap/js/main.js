@@ -97,7 +97,8 @@ Promise.all([
     });
     const educationValues = Array.from(educationMap.values());
     updateChoropleth(educationValues);
-    console.log(us.objects.counties);
+    console.log(us.objects.counties.geometries);
+    //console.log(educationData);
 
     ready(us);
   })
@@ -112,7 +113,7 @@ function ready(us) {
     .selectAll("path")
     .data(topojson.feature(us, us.objects.counties).features)
     .join("path")
-    .attr("data-fips", (d) => d.fips) // Set data-fips attribute to the county ID
+    .attr("data-fips", (d) => d.id) // Set data-fips attribute to the county ID
     .attr("data-education", (d) => educationMap.get(d.id)) // Set data-education attribute to the education value
     .attr("fill", (d) => {
       const value = educationMap.get(d.id);
@@ -125,11 +126,7 @@ function ready(us) {
   svg
     .append("path")
     .datum(
-      topojson.mesh(
-        us,
-        us.objects.states,
-        (a, b) => a.properties.id !== b.properties.id
-      )
+      topojson.mesh(us, us.objects.states.geometries, (a, b) => a.id !== b.id)
     )
     .attr("class", "states")
     .attr("d", path);
