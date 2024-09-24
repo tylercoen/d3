@@ -92,13 +92,12 @@ Promise.all([
   .then(([educationData, us]) => {
     educationData.forEach((d) => {
       educationMap.set(d.fips, +d.bachelorsOrHigher);
-      d.fips = d.fips;
+      d.id = d.fips;
       d.education = +d.bachelorsOrHigher;
     });
+    console.log(us);
     const educationValues = Array.from(educationMap.values());
     updateChoropleth(educationValues);
-    console.log(us.objects.counties.geometries);
-    //console.log(educationData);
 
     ready(us);
   })
@@ -107,14 +106,14 @@ Promise.all([
   });
 
 function ready(us) {
-  svg
-    .append("g")
-    .attr("class", "county")
+  const counties = svg.append("g").attr("class", "county");
+
+  counties
     .selectAll("path")
     .data(topojson.feature(us, us.objects.counties).features)
     .join("path")
-    .attr("data-fips", (d) => d.id) // Set data-fips attribute to the county ID
-    .attr("data-education", (d) => educationMap.get(d.id)) // Set data-education attribute to the education value
+    .attr("data-fips", (d) => d.id)
+    .attr("data-education", (d) => educationMap.get(d.id))
     .attr("fill", (d) => {
       const value = educationMap.get(d.id);
       return value ? color(value) : "#ccc";
