@@ -118,16 +118,21 @@ function ready(usaTopo) {
     .attr("d", path)
     .attr("data-fips", (d) => d.id)
     .attr("data-education", (d) => educationMap.get(d.id))
-    .attr("fill", (d) =>
-      color(educationMap.get(d.id))
-        .append("title")
-        .text((d) => `${educationMap.get(d.id)}%`)
-    );
+    .attr("fill", (d) => {
+      const value = educationMap.get(d.id);
+      return value ? color(value) : "#ccc";
+    })
+    .append("title")
+    .text((d) => `${educationMap.get(d.id)}%`);
 
   svg
     .append("path")
     .datum(
-      topojson.mesh(us, us.objects.states.geometries, (a, b) => a.id !== b.id)
+      topojson.mesh(
+        usaTopo,
+        usaTopo.objects.states.geometries,
+        (a, b) => a.id !== b.id
+      )
     )
     .attr("class", "states")
     .attr("d", path);
