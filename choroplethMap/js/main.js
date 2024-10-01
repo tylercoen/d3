@@ -43,10 +43,12 @@ const g = svg
   .attr("id", "legend")
   .attr("transform", "translate(0,40)");
 
-let us;
+let usaTopo; // More descriptive name for US data
 let color;
 
 function updateChoropleth(educationValues) {
+  if (!educationValues.length) return; // Early exit if no data
+
   const minEducation = d3.min(educationValues);
   const maxEducation = d3.max(educationValues);
 
@@ -90,37 +92,37 @@ Promise.all([
   ),
 ])
   .then(([educationData, us]) => {
+    usaTopo = us; // Using the new name
     educationData.forEach((d) => {
       educationMap.set(d.fips, +d.bachelorsOrHigher);
       d.id = d.fips;
       d.education = +d.bachelorsOrHigher;
     });
-    console.log(us);
     const educationValues = Array.from(educationMap.values());
     updateChoropleth(educationValues);
 
-    ready(us);
+    ready(usaTopo);
   })
   .catch((error) => {
     console.error("Error fetching data: ", error);
   });
 
-function ready(us) {
+function ready(usaTopo) {
   const counties = svg.append("g").attr("class", "county");
 
   counties
     .selectAll("path")
-    .data(topojson.feature(us, us.objects.counties).features)
-    .join("path")
+    .data(topojson.feature(usaTopo, usaTopo.objects.counties).features)
+    .enter()
+    .append("path")
+    .attr("d", path)
     .attr("data-fips", (d) => d.id)
     .attr("data-education", (d) => educationMap.get(d.id))
-    .attr("fill", (d) => {
-      const value = educationMap.get(d.id);
-      return value ? color(value) : "#ccc";
-    })
-    .attr("d", path)
-    .append("title")
-    .text((d) => `${educationMap.get(d.id)}%`);
+    .attr("fill", (d) =>
+      color(educationMap.get(d.id))
+        .append("title")
+        .text((d) => `${educationMap.get(d.id)}%`)
+    );
 
   svg
     .append("path")
