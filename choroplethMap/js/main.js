@@ -95,9 +95,6 @@ function updateChoropleth(educationValues) {
     )
     .select(".domain")
     .remove();
-
-  console.log(color.range());
-  console.log(color.invertExtent(color.range()[0]));
 }
 
 Promise.all([
