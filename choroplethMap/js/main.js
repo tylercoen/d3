@@ -55,32 +55,49 @@ function updateChoropleth(educationValues) {
   color = d3
     .scaleQuantize()
     .domain([minEducation, maxEducation])
-    .range(d3.schemeBlues[9]);
+    .range(d3.schemeSpectral[9]);
 
-  const x = d3
+  // Refactored legend
+
+  // legend container
+  const legendWidth = 300;
+  const legendHeight = 8;
+  const legendXStart = 600;
+
+  // define the x scale for the legend
+  const xLegend = d3
     .scaleLinear()
     .domain([minEducation, maxEducation])
-    .rangeRound([600, 860]);
+    .range([legendXStart, legendXStart + legendWidth]);
 
-  // Update the legend
-  g.selectAll("rect")
+  // create the legend group
+  const legendGroup = svg.append("g").attr("transform", "translate(-50, 50)"); //position the legend
+
+  // create a set of rectangles for the legend
+  legendGroup
+    .selectAll("rect")
     .data(color.range().map((d) => color.invertExtent(d)))
     .join("rect")
-    .attr("height", 8)
-    .attr("x", (d) => x(d[0]))
-    .attr("width", (d) => x(d[1]) - x(d[0]))
-    .attr("fill", (d) => color(d[0]));
+    .attr("x", (d) => xLegend(d[0])) //position the rectangles
+    .attr("y", 0) //vertical position
+    .attr("width", (d) => xLegend(d[1]) - xLegend(d[0])) // ensure correct width
+    .attr("height", legendHeight)
+    .attr("fill", (d) => color(d[0])); // fill each box with its color
 
-  // Update the axis
-  g.call(
-    d3
-      .axisBottom(x)
-      .tickSize(13)
-      .tickFormat((d) => `${d.toFixed(1)}%`)
-      .ticks(9)
-  )
+  // Add an axis for the legend
+  legendGroup
+    .call(
+      d3
+        .axisBottom(xLegend)
+        .tickSize(13)
+        .tickFormat((d) => `${d.toFixed(1)}%`)
+        .ticks(9)
+    )
     .select(".domain")
     .remove();
+
+  console.log(color.range());
+  console.log(color.invertExtent(color.range()[0]));
 }
 
 Promise.all([
@@ -98,6 +115,7 @@ Promise.all([
       d.id = d.fips;
       d.education = +d.bachelorsOrHigher;
     });
+
     const educationValues = Array.from(educationMap.values());
     updateChoropleth(educationValues);
 
