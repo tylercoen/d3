@@ -43,56 +43,40 @@ const g = svg
   .attr("id", "legend")
   .attr("transform", "translate(0,40)");
 
-let usaTopo; // More descriptive name for US data
+let us;
 let color;
 
 function updateChoropleth(educationValues) {
-  if (!educationValues.length) return; // Early exit if no data
-
   const minEducation = d3.min(educationValues);
   const maxEducation = d3.max(educationValues);
 
   color = d3
     .scaleQuantize()
     .domain([minEducation, maxEducation])
-    .range(d3.schemeSpectral[9]);
+    .range(d3.schemeBlues[9]);
 
-  // Refactored legend
-
-  // legend container
-  const legendWidth = 300;
-  const legendHeight = 8;
-  const legendXStart = 600;
-
-  // define the x scale for the legend
-  const xLegend = d3
+  const x = d3
     .scaleLinear()
     .domain([minEducation, maxEducation])
-    .range([legendXStart, legendXStart + legendWidth]);
+    .rangeRound([600, 860]);
 
-  // create the legend group
-  const legendGroup = svg.append("g").attr("transform", "translate(-50, 50)"); //position the legend
-
-  // create a set of rectangles for the legend
-  legendGroup
-    .selectAll("rect")
+  // Update the legend
+  g.selectAll("rect")
     .data(color.range().map((d) => color.invertExtent(d)))
     .join("rect")
-    .attr("x", (d) => xLegend(d[0])) //position the rectangles
-    .attr("y", 0) //vertical position
-    .attr("width", (d) => xLegend(d[1]) - xLegend(d[0])) // ensure correct width
-    .attr("height", legendHeight)
-    .attr("fill", (d) => color(d[0])); // fill each box with its color
+    .attr("height", 8)
+    .attr("x", (d) => x(d[0]))
+    .attr("width", (d) => x(d[1]) - x(d[0]))
+    .attr("fill", (d) => color(d[0]));
 
-  // Add an axis for the legend
-  legendGroup
-    .call(
-      d3
-        .axisBottom(xLegend)
-        .tickSize(13)
-        .tickFormat((d) => `${d.toFixed(1)}%`)
-        .ticks(9)
-    )
+  // Update the axis
+  g.call(
+    d3
+      .axisBottom(x)
+      .tickSize(13)
+      .tickFormat((d) => `${d.toFixed(1)}%`)
+      .ticks(9)
+  )
     .select(".domain")
     .remove();
 }
@@ -106,28 +90,26 @@ Promise.all([
   ),
 ])
   .then(([educationData, us]) => {
-    usaTopo = us; // Using the new name
     educationData.forEach((d) => {
       educationMap.set(d.fips, +d.bachelorsOrHigher);
       d.id = d.fips;
       d.education = +d.bachelorsOrHigher;
     });
-
     const educationValues = Array.from(educationMap.values());
     updateChoropleth(educationValues);
 
-    ready(usaTopo);
+    ready(us);
   })
   .catch((error) => {
     console.error("Error fetching data: ", error);
   });
 
-function ready(usaTopo) {
+function ready(us) {
   const counties = svg.append("g").attr("class", "county");
 
   counties
     .selectAll("path")
-    .data(topojson.feature(usaTopo, usaTopo.objects.counties).features)
+    .data(topojson.feature(us, us.objects.counties).features)
     .enter()
     .append("path")
     .attr("d", path)
@@ -143,11 +125,7 @@ function ready(usaTopo) {
   svg
     .append("path")
     .datum(
-      topojson.mesh(
-        usaTopo,
-        usaTopo.objects.states.geometries,
-        (a, b) => a.id !== b.id
-      )
+      topojson.mesh(us, us.objects.states.geometries, (a, b) => a.id !== b.id)
     )
     .attr("class", "states")
     .attr("d", path);
