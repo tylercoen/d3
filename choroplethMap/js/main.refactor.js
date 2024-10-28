@@ -33,7 +33,7 @@ Promise.all([d3.json(EDU_URL), d3.json(COUNTIES_URL)]).then(
       .attr("id", "tooltip")
       .style("background", "#faedcd")
       .style("color", "#344e41")
-      .style("opacity", "0");
+      .style("opacity", 0);
 
     // create color scale
     var minEducation = d3.min(eduData, (d) => d.bachelorsOrHigher);
@@ -42,11 +42,11 @@ Promise.all([d3.json(EDU_URL), d3.json(COUNTIES_URL)]).then(
 
     //create svg
     var svg = d3
-      .select("#container")
+      .select("#map")
       .append("svg")
       .attr("width", containerWidth)
       .attr("height", containerHeight);
-    var singleCounty;
+    var targetCounty;
 
     //draw the counties
     svg
@@ -55,12 +55,12 @@ Promise.all([d3.json(EDU_URL), d3.json(COUNTIES_URL)]).then(
       .enter()
       .append("path")
       .style("fill", function (d) {
-        singleCounty = eduData.filter(function (object) {
+        targetCounty = eduData.filter(function (object) {
           return object.fips == d.id;
         });
-        if (singleCounty.length > 0) {
+        if (targetCounty.length > 0) {
           return d3.interpolateGreens(
-            1 - singleCounty[0].bachelorsOrHigher / Math.round(maxEducation)
+            1 - targetCounty[0].bachelorsOrHigher / Math.round(maxEducation)
           );
         } else {
           return "grey";
@@ -71,13 +71,46 @@ Promise.all([d3.json(EDU_URL), d3.json(COUNTIES_URL)]).then(
       .attr("class", "county")
       .attr("data-fips", (d) => d.id)
       .attr("data-education", function (d) {
-        singleCounty = eduData.filter(function (object) {
+        targetCounty = eduData.filter(function (object) {
           return object.fips == d.id;
         });
-        if (singleCounty.length > 0) {
-          return singleCounty[0].bachelorsOrHigher;
+        if (targetCounty.length > 0) {
+          return targetCounty[0].bachelorsOrHigher;
         }
       })
-      .attr("d", path);
+      .attr("d", path)
+      .on("mouseover", function (d, i) {
+        d3.select(this).style("stroke", "black").style("stroke-width", 0.9);
+        targetCounty = eduDataById(eduData, d.id);
+        tooltip
+          .html(
+            targetCounty[0].area_name +
+              ", " +
+              targetCounty[0].state +
+              "<br/>" +
+              targetCounty[0].bachelorsOrHigher +
+              "%"
+          )
+          .attr("data-education", targetCounty[0].bachelorsOrHigher)
+          .style("left", d3.event.pageX + "px")
+          .style("top", d3.event.pageY - 50 + "px")
+          .style(
+            "background",
+            d3.interpolateGreens(
+              1 - targetCounty[0].bachelorsOrHigher / Math.round(maxEducation)
+            )
+          )
+          .style("opacity", 0.9);
+      })
+      .on("mouseout", function (d, i) {
+        d3.select(this).style("stroke", "grey").style("stroke-width", 0.5);
+        tooltip.style("opacity", 0);
+      });
   }
 );
+function eduDataById(eduData, id) {
+  var targetId = eduData.filter(function (object) {
+    return object.fips == id;
+  });
+  return targetId.slice();
+}
