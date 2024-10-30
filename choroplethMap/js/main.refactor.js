@@ -30,10 +30,7 @@ Promise.all([d3.json(EDU_URL), d3.json(COUNTIES_URL)]).then(
       .select("body")
       .append("div")
       .attr("class", "tooltip")
-      .attr("id", "tooltip")
-      .style("background", "#faedcd")
-      .style("color", "#344e41")
-      .style("opacity", 0);
+      .attr("id", "tooltip");
 
     // create color scale
     var minEducation = d3.min(eduData, (d) => d.bachelorsOrHigher);
@@ -92,20 +89,52 @@ Promise.all([d3.json(EDU_URL), d3.json(COUNTIES_URL)]).then(
               "%"
           )
           .attr("data-education", targetCounty[0].bachelorsOrHigher)
-          .style("left", d3.event.pageX + "px")
-          .style("top", d3.event.pageY - 50 + "px")
-          .style(
-            "background",
-            d3.interpolateGreens(
-              1 - targetCounty[0].bachelorsOrHigher / Math.round(maxEducation)
-            )
-          )
           .style("opacity", 0.9);
+        var bbox = this.getBBox(); // Get bounding box of the county path
+        var x = bbox.x + bbox.width + 10; // Position tooltip 10px to the right
+        var y = bbox.y + bbox.height / 2 - tooltip.node().offsetHeight / 2; // Center tooltip vertically
+        tooltip.style("left", x + 500 + "px").style("top", y + 200 + "px");
       })
       .on("mouseout", function (d, i) {
         d3.select(this).style("stroke", "grey").style("stroke-width", 0.5);
         tooltip.style("opacity", 0);
       });
+
+    svg
+      .append("path")
+      .datum(usStates)
+      .attr("fill", "none")
+      .attr("stroke", "black")
+      .attr("stroke-linejoin", "round")
+      .attr("class", "states")
+      .attr("d", path);
+
+    // legend gradient
+    var defs = svg.append("defs");
+    var numStops = 2;
+    var numBlocks = 10;
+    var gradient = [];
+    for (var n = 0; n < numBlocks; n++) {
+      gradient[n] = defs
+        .append("linearGradient")
+        .attr("id", "svgGradient" + n)
+        .attr("x1", "0%")
+        .attr("x2", "100%")
+        .selectAll("stop")
+        .data(d3.range(numStops))
+        .enter()
+        .append("stop")
+        .attr("offset", (d) => d / numStops)
+        .attr("stop-color", function (d, i) {
+          return d3.interpolateGreens(1 - (d + n) * 0.1);
+        });
+    }
+
+    //legend
+
+    // legend boxes
+
+    //legend text
   }
 );
 function eduDataById(eduData, id) {
