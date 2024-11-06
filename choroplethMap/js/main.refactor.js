@@ -131,8 +131,24 @@ Promise.all([d3.json(EDU_URL), d3.json(COUNTIES_URL)]).then(
     }
 
     //legend
+    var legend = svg.append("g").attr("class", "legend").attr("id", "legend");
 
     // legend boxes
+    var legendSize = 20;
+    var legendLength = 10;
+    var stopOffset = "";
+
+    for (var i = 0; i < numBlocks; ++i) {
+      legend
+        .append("rect")
+        .style("stroke", "black")
+        .style("stroke-width", 1)
+        .attr("x", 0.1 * containerWidth + i * (legendSize * 2 + 1))
+        .attr("y", containerHeight - padding)
+        .attr("height", legendSize * 3 + 1)
+        .attr("width", legendSize / 2)
+        .style("fill", "url(#svgGradient" + i + ")");
+    }
 
     //legend text
   }
