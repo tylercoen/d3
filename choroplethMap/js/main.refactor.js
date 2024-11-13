@@ -145,12 +145,20 @@ Promise.all([d3.json(EDU_URL), d3.json(COUNTIES_URL)]).then(
         .style("stroke-width", 1)
         .attr("x", 0.1 * containerWidth + i * (legendSize * 2 + 1))
         .attr("y", containerHeight - padding)
-        .attr("height", legendSize * 3 + 1)
-        .attr("width", legendSize / 2)
+        .attr("height", legendSize)
+        .attr("width", legendSize * 2)
         .style("fill", "url(#svgGradient" + i + ")");
     }
 
     //legend text
+    for (var m = 0; m <= legendLength; ++m) {
+      legend
+        .append("text")
+        .attr("x", 0.1 * containerWidth + m * (legendSize * 2 + 1))
+        .attr("y", containerHeight - padding - legendSize * 0.5)
+        .text("testing");
+      //.text(Math.round((minEducation + j * stepVariance) * 100) / 100);
+    }
   }
 );
 function eduDataById(eduData, id) {
