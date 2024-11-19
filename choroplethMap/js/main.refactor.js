@@ -1,5 +1,3 @@
-//https://gist.github.com/mattrelph/2526cc430c195d1cad2661d503536469
-
 const EDU_URL =
   "https://cdn.freecodecamp.org/testable-projects-fcc/data/choropleth_map/for_user_education.json";
 const COUNTIES_URL =
