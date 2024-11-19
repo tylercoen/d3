@@ -143,10 +143,10 @@ Promise.all([d3.json(EDU_URL), d3.json(COUNTIES_URL)]).then(
         .append("rect")
         .style("stroke", "black")
         .style("stroke-width", 1)
-        .attr("x", 0.1 * containerWidth + i * (legendSize * 2 + 1))
+        .attr("x", 0.1 * containerWidth + i * (legendSize * 3 + 1))
         .attr("y", containerHeight - padding)
         .attr("height", legendSize)
-        .attr("width", legendSize * 2)
+        .attr("width", legendSize * 3)
         .style("fill", "url(#svgGradient" + i + ")");
     }
 
@@ -154,10 +154,9 @@ Promise.all([d3.json(EDU_URL), d3.json(COUNTIES_URL)]).then(
     for (var m = 0; m <= legendLength; ++m) {
       legend
         .append("text")
-        .attr("x", 0.1 * containerWidth + m * (legendSize * 2 + 1))
+        .attr("x", 0.08 * containerWidth + m * (legendSize * 3))
         .attr("y", containerHeight - padding - legendSize * 0.5)
-        .text("testing");
-      //.text(Math.round((minEducation + j * stepVariance) * 100) / 100);
+        .text(Math.round((minEducation + m * stepVariance) * 100) / 100);
     }
   }
 );
