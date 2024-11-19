@@ -1,0 +1,19 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh; /* Adjust height as needed   
+ */
+}
+
+.container h1,
+.container h2,
+.container p {
+  text-align: center;
+}
+
+h1,
+h2 {
+  text-align: right;
+}
