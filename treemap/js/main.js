@@ -1,4 +1,4 @@
-//https://d3-graph-gallery.com/graph/treemap_json.html
+//https://d3-graph-gallery.com/graph/treemap_custom.html
 //https://www.freecodecamp.org/learn/data-visualization/data-visualization-projects/visualize-data-with-a-treemap-diagram
 
 const VIDEO_GAME_SALES_URL =
