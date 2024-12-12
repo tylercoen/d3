@@ -23,62 +23,19 @@ Promise.all([d3.json(VIDEO_GAME_SALES_URL)]).then(([data]) => {
   console.log(videoGameSalesData);
   ///console.log(videoGameSalesData[0].children[0].value);
 
-  const root = d3.hierarchy(videoGameSalesData).sum((d) => d.value);
+  const root = d3
+    .hierarchy(data)
+    .sum((d) => d.value)
+    .sort((a, b) => b.value - a.value);
 
   //create svg
-  d3
-    .treemap()
-    .size([mapWidth, mapHeight])
-    .paddingTop(28)
-    .paddingRight(7)
-    .paddingInner(3)(
-    // Padding between each rectangle
-    //.paddingOuter(6)
-    //.padding(20)
-    root
-  );
-  ///////////////////////////////////////////////////////////////
-  /*
-  // Create a group for each node
-  const cells = svg
-    .selectAll("g")
-    .data(root.leaves())
-    .enter()
-    .append("g")
-    .attr("transform", (d) => `translate(${d.x0},${d.y0})`);
+  // Create the treemap layout
+  var treemap = d3.treemap().size([mapWidth, mapHeight]).padding(1);
 
-  // Create rectangles for each node
-  cells
-    .append("rect")
-    .attr("width", (d) => d.x1 - d.x0)
-    .attr("height", (d) => d.y1 - d.y0)
-    .style("fill", "steelblue");
+  // Apply the treemap layout to the hierarchy
+  treemap(root);
 
-  // Add text labels to each node
-  cells
-    .append("text")
-    .attr("x", 3)
-    .attr("y", 13)
-    .text((d) => d.data.name)
-    .style("font-size", "10px")
-    .style("fill", "white");
-    */
-  ///////////////////////////////////////////////
-  // use this information to add rectangles:
-  svg
-    .selectAll("rect")
-    .data(root.leaves())
-    .enter()
-    .append("rect")
-    .attr("x", (d) => d.x0)
-    .attr("y", (d) => d.y0)
-    .attr("width", (d) => d.x1 - d.x0)
-    .attr("height", (d) => d.y1 - d.y0)
-    .style("stroke", "black")
-    //.style("fill", (d) => color(d.parent.data.name)) remove the use of color and create a function that fills by category
-    .style("opacity", (d) => opacity(d.data.value));
-
-  const colorScale = d3
+  const color = d3
     .scaleOrdinal()
     .domain([
       "2600",
@@ -103,4 +60,44 @@ Promise.all([d3.json(VIDEO_GAME_SALES_URL)]).then(([data]) => {
     .range(d3.schemeCategory10);
 
   var opacity = d3.scaleLinear().domain([10, 30]).range([0.5, 1]);
+  ///////////////////////////////////////////////////////////////
+
+  // Create a group for each node
+  const cells = svg
+    .selectAll("g")
+    .data(root.leaves())
+    .enter()
+    .append("g")
+    .attr("transform", (d) => `translate(${d.x0},${d.y0})`);
+
+  // Create rectangles for each node
+  cells
+    .append("rect")
+    .attr("width", (d) => d.x1 - d.x0)
+    .attr("height", (d) => d.y1 - d.y0)
+    .style("fill", "steelblue");
+
+  // Add text labels to each node
+  cells
+    .append("text")
+    .attr("x", 3)
+    .attr("y", 13)
+    .text((d) => d.data.name)
+    .style("font-size", "10px")
+    .style("fill", "white");
+
+  ///////////////////////////////////////////////
+  // use this information to add rectangles:
+  svg
+    .selectAll("rect")
+    .data(root.leaves())
+    .enter()
+    .append("rect")
+    .attr("x", (d) => d.x0)
+    .attr("y", (d) => d.y0)
+    .attr("width", (d) => d.x1 - d.x0)
+    .attr("height", (d) => d.y1 - d.y0)
+    .style("stroke", "black");
+  //.style("fill", (d) => color(d.parent.data.name)) remove the use of color and create a function that fills by category
+  //.style("opacity", (d) => opacity(d.data.value));
 });
