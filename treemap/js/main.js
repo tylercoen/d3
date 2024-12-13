@@ -60,7 +60,6 @@ Promise.all([d3.json(VIDEO_GAME_SALES_URL)]).then(([data]) => {
     .range(d3.schemeCategory10);
 
   var opacity = d3.scaleLinear().domain([10, 30]).range([0.5, 1]);
-  ///////////////////////////////////////////////////////////////
 
   // Create a group for each node
   const cells = svg
@@ -75,7 +74,12 @@ Promise.all([d3.json(VIDEO_GAME_SALES_URL)]).then(([data]) => {
     .append("rect")
     .attr("width", (d) => d.x1 - d.x0)
     .attr("height", (d) => d.y1 - d.y0)
-    .style("fill", "steelblue");
+    .attr("class", "tile")
+    .attr("data-name", (d) => d.data.name)
+    .attr("data-category", (d) => d.data.category)
+    .attr("data-value", (d) => d.data.value)
+    .style("fill", (d) => color(d.data.category))
+    .style("opacity", (d) => opacity(d.data.value));
 
   // Add text labels to each node
   cells
@@ -86,7 +90,6 @@ Promise.all([d3.json(VIDEO_GAME_SALES_URL)]).then(([data]) => {
     .style("font-size", "10px")
     .style("fill", "white");
 
-  ///////////////////////////////////////////////
   // use this information to add rectangles:
   svg
     .selectAll("rect")
@@ -98,6 +101,45 @@ Promise.all([d3.json(VIDEO_GAME_SALES_URL)]).then(([data]) => {
     .attr("width", (d) => d.x1 - d.x0)
     .attr("height", (d) => d.y1 - d.y0)
     .style("stroke", "black");
-  //.style("fill", (d) => color(d.parent.data.name)) remove the use of color and create a function that fills by category
-  //.style("opacity", (d) => opacity(d.data.value));
+
+  // LEGEND //
+
+  const lengendWidth = 200;
+  const lengendHeight = 20;
+  const legendSpacing = 5;
+  const legendPadding = 10;
+
+  const legend = svg
+    .append("g")
+    .attr("id", "legend")
+    .attr("transform", `translate(${(mapWidth + margin - lengendWidth, 0)})`);
+
+  const categories = color.domain();
+
+  const legendItems = legend
+    .selectAll(".legend-item")
+    .data(categories)
+    .enter()
+    .append("g")
+    .attr("class", "legend-item")
+    .attr(
+      "tranform",
+      (d, i) => `translate(0, ${i * lengendHeight + legendSpacing})`
+    );
+
+  legendItems
+    .append("rect")
+    .attr("width", lengendWidth)
+    .attr("height", lengendHeight)
+    .attr("fill", (d) => color(d))
+    .attr("stroke", "black");
+
+  legendItems
+    .append("text")
+    .attr("x", lengendHeight + legendPadding)
+    .attr("y", lengendHeight / 2)
+    .attr("dy", "0.35em")
+    .style("font-size", "12px")
+    .style("fill", "black")
+    .text((d) => d);
 });
