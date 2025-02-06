@@ -3,6 +3,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  position: relative;
   height: 100vh; /* Adjust height as needed   
  */
 }
@@ -16,4 +17,16 @@
 h1,
 h2 {
   text-align: right;
+}
+
+#tooltip {
+  position: absolute;
+  text-align: center;
+  padding: 8px;
+  background: rgba(0, 0, 0, 0.8);
+  color: #fff;
+  border-radius: 4px;
+  pointer-events: none; /* Important: Prevents tooltip from blocking mouse events */
+  opacity: 0; /* Initially hidden */
+  transition: opacity 0.2s ease-in-out; /* Smooth appearance/disappearance */
 }

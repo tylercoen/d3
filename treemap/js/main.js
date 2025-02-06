@@ -1,6 +1,3 @@
-//https://d3-graph-gallery.com/graph/treemap_custom.html
-//https://www.freecodecamp.org/learn/data-visualization/data-visualization-projects/visualize-data-with-a-treemap-diagram
-
 const VIDEO_GAME_SALES_URL =
   "https://cdn.freecodecamp.org/testable-projects-fcc/data/tree_map/video-game-sales-data.json";
 
@@ -36,7 +33,7 @@ Promise.all([d3.json(VIDEO_GAME_SALES_URL)]).then(([data]) => {
 
   // Apply the treemap layout to the hierarchy
   treemap(root);
-
+  console.log("root.leaves():", root.leaves());
   const color = d3
     .scaleOrdinal()
     .domain([
@@ -66,14 +63,14 @@ Promise.all([d3.json(VIDEO_GAME_SALES_URL)]).then(([data]) => {
   // Create a group for each node
   const cells = svg
     .selectAll("g")
-    .data(root.leaves())
+    .data(root.leaves(), (d) => d.data.name)
     .enter()
     .append("g")
     .attr("transform", (d) => `translate(${d.x0},${d.y0})`);
 
   // Create rectangles for each node
   cells
-    .append("rect")
+    .append("rect") // Rectangles (Correct target for mouseover)
     .attr("width", (d) => d.x1 - d.x0)
     .attr("height", (d) => d.y1 - d.y0)
     .attr("class", "tile")
@@ -82,11 +79,16 @@ Promise.all([d3.json(VIDEO_GAME_SALES_URL)]).then(([data]) => {
     .attr("data-value", (d) => d.data.value)
     .style("fill", (d) => color(d.data.category))
     .style("opacity", (d) => opacity(d.data.value))
-    .on("mouseover", (event, d) => {
-      console.log("Hovered data:", d);
+    .on("mouseover", function (event) {
+      // Note: 'function' keyword is important here!
+      const d = d3.select(this).datum(); // Get the data using d3.select(this).datum()
 
-      if (!d.data) {
-        console.error("Expected an object but got:", d);
+      console.log("Hovered element:", event.target);
+      console.log("Data (d):", d);
+      console.log("Type of d:", typeof d);
+
+      if (!d || !d.data) {
+        console.warn("Data is missing for this element:", d);
         return;
       }
 
@@ -102,29 +104,17 @@ Promise.all([d3.json(VIDEO_GAME_SALES_URL)]).then(([data]) => {
         .style("top", event.pageY - 30 + "px");
     })
     .on("mouseout", () => {
-      tooltip.style("opacity", 0);
+      // Mouseout handler added here!
+      tooltip.style("opacity", 0); // Hide the tooltip
     });
 
-  // Add text labels to each node
-  cells
+  cells // Text elements (Do NOT attach mouseover here)
     .append("text")
     .attr("x", 3)
     .attr("y", 13)
     .text((d) => d.data.name)
     .style("font-size", "10px")
     .style("fill", "white");
-
-  // use this information to add rectangles:
-  /*svg
-    .selectAll("rect")
-    .data(root.leaves())
-    .enter()
-    .append("rect")
-    .attr("x", (d) => d.x0)
-    .attr("y", (d) => d.y0)
-    .attr("width", (d) => d.x1 - d.x0)
-    .attr("height", (d) => d.y1 - d.y0)
-    .style("stroke", "black");*/
 
   // LEGEND //
 
